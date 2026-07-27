@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IRMC – Vi er et plateselskap som slipper urban- og popmusikk av høy kvalitet, med eget musikkstudio sentralt i Oslo.</title>
+<meta name="description" content="IRMC Norway – plateselskap og musikkstudio i Oslo. Vokalinnspilling, musikkproduksjon, miks, mastering, release og promotering.">
+<style>
+  /* Selvstendig side: all CSS inline, ingen CDN, ingen JS.
+     Mørkt tema – passer bransjer som studio, label, design, uteliv. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0e12;
+    --bg-2: #14161c;
+    --kort: #1a1d25;
+    --kantlinje: #282c37;
+    --tekst: #eef0f4;
+    --tekst-svak: #9aa2b1;
+    --aksent: #e8b33f;
+    --aksent-mork: #c99420;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--tekst);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---- Navigasjon ---- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13, 14, 18, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--kantlinje);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 62px; gap: 1rem; }
+  .logo { font-weight: 800; letter-spacing: 0.14em; font-size: 1.05rem; color: var(--tekst); text-decoration: none; }
+  .logo span { color: var(--aksent); }
+  nav ul { display: flex; gap: 1.5rem; list-style: none; }
+  nav a { color: var(--tekst-svak); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+  nav a:hover { color: var(--aksent); }
+  @media (max-width: 700px) { nav ul { display: none; } }
+
+  /* ---- Hero ---- */
+  header {
+    padding: 6rem 0 5rem;
+    text-align: center;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 0%, rgba(232,179,63,0.14), transparent 70%),
+      var(--bg);
+    border-bottom: 1px solid var(--kantlinje);
+  }
+  .kicker {
+    display: inline-block;
+    font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--aksent); font-weight: 700; margin-bottom: 1.25rem;
+    border: 1px solid rgba(232,179,63,0.35); border-radius: 999px; padding: 0.35rem 0.9rem;
+  }
+  header h1 {
+    font-size: clamp(2.4rem, 8vw, 4.5rem);
+    font-weight: 800; letter-spacing: -0.035em; line-height: 1.02;
+    margin-bottom: 1rem;
+  }
+  header .tagline { font-size: clamp(1.05rem, 2.6vw, 1.35rem); color: var(--tekst-svak); max-width: 620px; margin: 0 auto; }
+
+  .knapper { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; margin-top: 2.25rem; }
+  .btn {
+    display: inline-block; text-decoration: none; font-weight: 700; font-size: 1rem;
+    padding: 0.85rem 1.9rem; border-radius: 8px; transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-primar { background: var(--aksent); color: #17140b; box-shadow: 0 6px 22px rgba(232,179,63,0.24); }
+  .btn-primar:hover { transform: translateY(-2px); box-shadow: 0 9px 28px rgba(232,179,63,0.34); }
+  .btn-sekundar { border: 1px solid var(--kantlinje); color: var(--tekst); }
+  .btn-sekundar:hover { border-color: var(--aksent); color: var(--aksent); }
+
+  /* ---- Seksjoner ---- */
+  section { padding: 4.5rem 0; }
+  section + section { border-top: 1px solid var(--kantlinje); }
+  .seksjonstittel { font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aksent); font-weight: 700; margin-bottom: 0.85rem; }
+  h2.stor { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 1.1rem; }
+  .ingress { color: var(--tekst-svak); font-size: 1.06rem; max-width: 660px; }
+
+  /* ---- Tjenestekort ---- */
+  .rutenett { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 2.25rem; }
+  .kort {
+    background: var(--kort); border: 1px solid var(--kantlinje);
+    border-radius: 12px; padding: 1.6rem;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .kort:hover { border-color: rgba(232,179,63,0.45); transform: translateY(-3px); }
+  .kort .nr { font-size: 0.72rem; color: var(--aksent); font-weight: 700; letter-spacing: 0.12em; }
+  .kort h3 { font-size: 1.12rem; font-weight: 700; margin: 0.55rem 0 0.5rem; }
+  .kort p { color: var(--tekst-svak); font-size: 0.95rem; }
+
+  /* ---- Uthevet tilbud ---- */
+  .tilbud {
+    background: linear-gradient(150deg, var(--bg-2) 0%, var(--kort) 100%);
+    border: 1px solid rgba(232,179,63,0.3);
+    border-radius: 16px; padding: 2.5rem; margin-top: 2.25rem;
+  }
+  .tilbud h3 { font-size: clamp(1.35rem, 3.4vw, 1.85rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.7rem; }
+  .tilbud > p { color: var(--tekst-svak); max-width: 600px; }
+  .tilbud ul { list-style: none; margin: 1.75rem 0 0; display: grid; gap: 0.8rem; }
+  .tilbud li { display: flex; gap: 0.75rem; align-items: flex-start; font-size: 1rem; }
+  .hake { color: var(--aksent); font-weight: 800; flex-shrink: 0; }
+  .binding { margin-top: 1.75rem; padding-top: 1.35rem; border-top: 1px solid var(--kantlinje); color: var(--tekst-svak); font-size: 0.9rem; }
+
+  /* ---- Tekstblokker (om oss) ---- */
+  .blokker { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2.5rem; margin-top: 2.25rem; }
+  .blokk h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.7rem; }
+  .blokk p { color: var(--tekst-svak); }
+  .blokk p + p { margin-top: 0.8rem; }
+
+  /* ---- Kontakt ---- */
+  #kontakt { background: var(--bg-2); }
+  .kontaktlinje { display: flex; align-items: center; gap: 0.85rem; font-size: 1.08rem; margin-top: 1rem; }
+  .kontaktlinje a { color: var(--aksent); text-decoration: none; font-weight: 600; word-break: break-all; }
+  .kontaktlinje a:hover { text-decoration: underline; }
+  .ikon { flex-shrink: 0; }
+  .sosialt { display: flex; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; }
+  .sosialt a {
+    border: 1px solid var(--kantlinje); color: var(--tekst); text-decoration: none;
+    padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.92rem; font-weight: 600;
+  }
+  .sosialt a:hover { border-color: var(--aksent); color: var(--aksent); }
+
+  footer { border-top: 1px solid var(--kantlinje); padding: 2.5rem 0; text-align: center; color: var(--tekst-svak); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#">IRMC<span> NORWAY</span></a>
+    <ul>
+      <li><a href="#tjenester">Tjenester</a></li>
+      <li><a href="#tilbud">Abonnement</a></li>
+      <li><a href="#om">Om oss</a></li>
+      <li><a href="#kontakt">Kontakt</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+<div class="kicker">Plateselskap &amp; studio · Oslo</div>    <h1>International Records Music Company</h1>
+<p class="tagline">Vi er et plateselskap som slipper urban- og popmusikk av høy kvalitet, med eget musikkstudio sentralt i Oslo.</p>    <div class="knapper">
+      <a class="btn btn-primar" href="mailto:irmcnorway@gmail.com">Book studiotid</a>
+      <a class="btn btn-sekundar" href="#tjenester">Se hva vi tilbyr</a>
+    </div>
+  </div>
+</header>
+
+<section id="tjenester">
+  <div class="wrap">
+    <div class="seksjonstittel">Tjenester</div>
+    <h2 class="stor">Fra idé til ferdig utgivelse</h2>
+<p class="ingress">Vi tar hånd om hele kjeden i eget studio – du trenger ikke koordinere fem ulike leverandører for å få ut én låt.</p>    <div class="rutenett">
+      <div class="kort">
+        <div class="nr">01</div>
+        <h3>Vokalinnspilling</h3>
+<p>Profesjonelt lydopptak med tekniker i studio.</p>      </div>
+      <div class="kort">
+        <div class="nr">02</div>
+        <h3>Musikkproduksjon</h3>
+<p>Produksjon og beats bygget rundt uttrykket ditt.</p>      </div>
+      <div class="kort">
+        <div class="nr">03</div>
+        <h3>Miks</h3>
+<p>Vi setter sammen sporene til en helhetlig låt.</p>      </div>
+      <div class="kort">
+        <div class="nr">04</div>
+        <h3>Mastering</h3>
+<p>Siste finpuss så låten står seg på alle plattformer.</p>      </div>
+      <div class="kort">
+        <div class="nr">05</div>
+        <h3>Release</h3>
+<p>Vi håndterer utgivelsen og får musikken ut.</p>      </div>
+      <div class="kort">
+        <div class="nr">06</div>
+        <h3>Promotering</h3>
+<p>Arbeidet som gjør at noen faktisk hører låten.</p>      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tilbud">
+  <div class="wrap">
+    <div class="seksjonstittel">Abonnement</div>
+    <div class="tilbud">
+      <h3>Din egen EP, klar for release på 6 måneder</h3>
+<p>Én låt i måneden i seks måneder. Du velger én fast dag i uken, kommer inn i et profesjonelt studio sentralt i Oslo, og lager din egen musikk sammen med folk som gjør dette hver dag.</p>      <ul>
+        <li><span class="hake" aria-hidden="true">✓</span><span>10 timer opptak med tekniker hver måned</span></li>
+        <li><span class="hake" aria-hidden="true">✓</span><span>Én miks og master hver måned</span></li>
+        <li><span class="hake" aria-hidden="true">✓</span><span>Én produksjon/beat hver måned</span></li>
+        <li><span class="hake" aria-hidden="true">✓</span><span>Fast studiodag hver uke – du slipper å jage timer</span></li>
+        <li><span class="hake" aria-hidden="true">✓</span><span>Ferdig EP klar for utgivelse etter 6 måneder</span></li>
+      </ul>
+<div class="binding">6 måneders bindingstid. Ta kontakt for pris og ledige plasser.</div>    </div>
+  </div>
+</section>
+
+<section id="om">
+  <div class="wrap">
+    <div class="seksjonstittel">Om oss</div>
+    <h2 class="stor">Et lite selskap som gjør hele jobben</h2>
+    <div class="blokker">
+      <div class="blokk">
+        <h3>Plateselskapet</h3>
+        <p>IRMC ble etablert i 2017 og gir ut urban- og popmusikk av høy kvalitet. Bak selskapet står et team med lang erfaring fra bransjen.</p>
+        <p>Som plateselskap jobber vi for å gi artistene våre verktøyene de trenger for å lykkes – og for å lage musikken de faktisk vil lage.</p>
+      </div>
+      <div class="blokk">
+        <h3>Studioet</h3>
+        <p>Vi har vårt eget studio sentralt i Oslo, hvor talentfulle artister, produsenter og musikere jobber til daglig.</p>
+        <p>Studioet er ikke forbeholdt artistene på labelen. Vi tar imot alle som vil prøve seg som artist, eller som trenger lydopptak av høy kvalitet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="kontakt">
+  <div class="wrap">
+    <div class="seksjonstittel">Kontakt</div>
+    <h2 class="stor">Kom innom studio</h2>
+<p class="ingress">Send en e-post med hva du vil lage, så finner vi ut av resten sammen.</p>
+    <div class="kontaktlinje">
+      <span class="ikon" aria-hidden="true">✉️</span>
+      <a href="mailto:irmcnorway@gmail.com">irmcnorway@gmail.com</a>
+    </div>
+    <div class="kontaktlinje">
+      <span class="ikon" aria-hidden="true">📍</span>
+      <span>Hasle, Oslo</span>
+    </div>
+
+    <div class="sosialt">
+      <a href="https://www.facebook.com/irmcnorway/" target="_blank" rel="noopener noreferrer">Facebook</a>
+      <a href="https://www.instagram.com/irmcnorway/" target="_blank" rel="noopener noreferrer">Instagram</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>&copy; 2026 IRMC AS · Hasle, Oslo</p>
+  </div>
+</footer>
+
+</body>
+</html>

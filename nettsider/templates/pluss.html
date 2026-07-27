@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ navn }}{% if tagline %} – {{ tagline }}{% endif %}</title>
+<meta name="description" content="{{ meta_beskrivelse }}">
+<style>
+  /* Selvstendig side: all CSS inline, ingen CDN, ingen JS.
+     Mørkt tema – passer bransjer som studio, label, design, uteliv. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0e12;
+    --bg-2: #14161c;
+    --kort: #1a1d25;
+    --kantlinje: #282c37;
+    --tekst: #eef0f4;
+    --tekst-svak: #9aa2b1;
+    --aksent: #e8b33f;
+    --aksent-mork: #c99420;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--tekst);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---- Navigasjon ---- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13, 14, 18, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--kantlinje);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 62px; gap: 1rem; }
+  .logo { font-weight: 800; letter-spacing: 0.14em; font-size: 1.05rem; color: var(--tekst); text-decoration: none; }
+  .logo span { color: var(--aksent); }
+  nav ul { display: flex; gap: 1.5rem; list-style: none; }
+  nav a { color: var(--tekst-svak); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+  nav a:hover { color: var(--aksent); }
+  @media (max-width: 700px) { nav ul { display: none; } }
+
+  /* ---- Hero ---- */
+  header {
+    padding: 6rem 0 5rem;
+    text-align: center;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 0%, rgba(232,179,63,0.14), transparent 70%),
+      var(--bg);
+    border-bottom: 1px solid var(--kantlinje);
+  }
+  .kicker {
+    display: inline-block;
+    font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--aksent); font-weight: 700; margin-bottom: 1.25rem;
+    border: 1px solid rgba(232,179,63,0.35); border-radius: 999px; padding: 0.35rem 0.9rem;
+  }
+  header h1 {
+    font-size: clamp(2.4rem, 8vw, 4.5rem);
+    font-weight: 800; letter-spacing: -0.035em; line-height: 1.02;
+    margin-bottom: 1rem;
+  }
+  header .tagline { font-size: clamp(1.05rem, 2.6vw, 1.35rem); color: var(--tekst-svak); max-width: 620px; margin: 0 auto; }
+
+  .knapper { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; margin-top: 2.25rem; }
+  .btn {
+    display: inline-block; text-decoration: none; font-weight: 700; font-size: 1rem;
+    padding: 0.85rem 1.9rem; border-radius: 8px; transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-primar { background: var(--aksent); color: #17140b; box-shadow: 0 6px 22px rgba(232,179,63,0.24); }
+  .btn-primar:hover { transform: translateY(-2px); box-shadow: 0 9px 28px rgba(232,179,63,0.34); }
+  .btn-sekundar { border: 1px solid var(--kantlinje); color: var(--tekst); }
+  .btn-sekundar:hover { border-color: var(--aksent); color: var(--aksent); }
+
+  /* ---- Seksjoner ---- */
+  section { padding: 4.5rem 0; }
+  section + section { border-top: 1px solid var(--kantlinje); }
+  .seksjonstittel { font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aksent); font-weight: 700; margin-bottom: 0.85rem; }
+  h2.stor { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 1.1rem; }
+  .ingress { color: var(--tekst-svak); font-size: 1.06rem; max-width: 660px; }
+
+  /* ---- Tjenestekort ---- */
+  .rutenett { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 2.25rem; }
+  .kort {
+    background: var(--kort); border: 1px solid var(--kantlinje);
+    border-radius: 12px; padding: 1.6rem;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .kort:hover { border-color: rgba(232,179,63,0.45); transform: translateY(-3px); }
+  .kort .nr { font-size: 0.72rem; color: var(--aksent); font-weight: 700; letter-spacing: 0.12em; }
+  .kort h3 { font-size: 1.12rem; font-weight: 700; margin: 0.55rem 0 0.5rem; }
+  .kort p { color: var(--tekst-svak); font-size: 0.95rem; }
+
+  /* ---- Uthevet tilbud ---- */
+  .tilbud {
+    background: linear-gradient(150deg, var(--bg-2) 0%, var(--kort) 100%);
+    border: 1px solid rgba(232,179,63,0.3);
+    border-radius: 16px; padding: 2.5rem; margin-top: 2.25rem;
+  }
+  .tilbud h3 { font-size: clamp(1.35rem, 3.4vw, 1.85rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.7rem; }
+  .tilbud > p { color: var(--tekst-svak); max-width: 600px; }
+  .tilbud ul { list-style: none; margin: 1.75rem 0 0; display: grid; gap: 0.8rem; }
+  .tilbud li { display: flex; gap: 0.75rem; align-items: flex-start; font-size: 1rem; }
+  .hake { color: var(--aksent); font-weight: 800; flex-shrink: 0; }
+  .binding { margin-top: 1.75rem; padding-top: 1.35rem; border-top: 1px solid var(--kantlinje); color: var(--tekst-svak); font-size: 0.9rem; }
+
+  /* ---- Tekstblokker (om oss) ---- */
+  .blokker { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2.5rem; margin-top: 2.25rem; }
+  .blokk h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.7rem; }
+  .blokk p { color: var(--tekst-svak); }
+  .blokk p + p { margin-top: 0.8rem; }
+
+  /* ---- Kontakt ---- */
+  #kontakt { background: var(--bg-2); }
+  .kontaktlinje { display: flex; align-items: center; gap: 0.85rem; font-size: 1.08rem; margin-top: 1rem; }
+  .kontaktlinje a { color: var(--aksent); text-decoration: none; font-weight: 600; word-break: break-all; }
+  .kontaktlinje a:hover { text-decoration: underline; }
+  .ikon { flex-shrink: 0; }
+  .sosialt { display: flex; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; }
+  .sosialt a {
+    border: 1px solid var(--kantlinje); color: var(--tekst); text-decoration: none;
+    padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.92rem; font-weight: 600;
+  }
+  .sosialt a:hover { border-color: var(--aksent); color: var(--aksent); }
+
+  footer { border-top: 1px solid var(--kantlinje); padding: 2.5rem 0; text-align: center; color: var(--tekst-svak); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#">{{ navn }}{% if logo_aksent %}<span>{{ logo_aksent }}</span>{% endif %}</a>
+    <ul>
+      {% for lenke in meny %}
+      <li><a href="#{{ lenke.id }}">{{ lenke.tekst }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    {% if kicker %}<div class="kicker">{{ kicker }}</div>{% endif %}
+    <h1>{{ overskrift }}</h1>
+    {% if tagline %}<p class="tagline">{{ tagline }}</p>{% endif %}
+    <div class="knapper">
+      {% if epost %}
+      <a class="btn btn-primar" href="mailto:{{ epost }}">{{ cta_tekst }}</a>
+      {% endif %}
+      <a class="btn btn-sekundar" href="#tjenester">Se hva vi tilbyr</a>
+    </div>
+  </div>
+</header>
+
+{% if tjenester %}
+<section id="tjenester">
+  <div class="wrap">
+    <div class="seksjonstittel">Tjenester</div>
+    <h2 class="stor">{{ tjenester_overskrift }}</h2>
+    {% if tjenester_ingress %}<p class="ingress">{{ tjenester_ingress }}</p>{% endif %}
+    <div class="rutenett">
+      {% for t in tjenester %}
+      <div class="kort">
+        <div class="nr">{{ "%02d"|format(loop.index) }}</div>
+        <h3>{{ t.navn }}</h3>
+        {% if t.beskrivelse %}<p>{{ t.beskrivelse }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if tilbud %}
+<section id="tilbud">
+  <div class="wrap">
+    <div class="seksjonstittel">{{ tilbud.merkelapp }}</div>
+    <div class="tilbud">
+      <h3>{{ tilbud.tittel }}</h3>
+      {% if tilbud.beskrivelse %}<p>{{ tilbud.beskrivelse }}</p>{% endif %}
+      {% if tilbud.punkter %}
+      <ul>
+        {% for p in tilbud.punkter %}
+        <li><span class="hake" aria-hidden="true">✓</span><span>{{ p }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if tilbud.vilkaar %}<div class="binding">{{ tilbud.vilkaar }}</div>{% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if blokker %}
+<section id="om">
+  <div class="wrap">
+    <div class="seksjonstittel">Om oss</div>
+    <h2 class="stor">{{ om_overskrift }}</h2>
+    <div class="blokker">
+      {% for b in blokker %}
+      <div class="blokk">
+        <h3>{{ b.tittel }}</h3>
+        {% for avsnitt in b.avsnitt %}
+        <p>{{ avsnitt }}</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section id="kontakt">
+  <div class="wrap">
+    <div class="seksjonstittel">Kontakt</div>
+    <h2 class="stor">{{ kontakt_overskrift }}</h2>
+    {% if kontakt_ingress %}<p class="ingress">{{ kontakt_ingress }}</p>{% endif %}
+
+    {% if epost %}
+    <div class="kontaktlinje">
+      <span class="ikon" aria-hidden="true">✉️</span>
+      <a href="mailto:{{ epost }}">{{ epost }}</a>
+    </div>
+    {% endif %}
+    {% if telefon %}
+    <div class="kontaktlinje">
+      <span class="ikon" aria-hidden="true">📞</span>
+      <a href="tel:{{ telefon_lenke }}">{{ telefon }}</a>
+    </div>
+    {% endif %}
+    {% if sted %}
+    <div class="kontaktlinje">
+      <span class="ikon" aria-hidden="true">📍</span>
+      <span>{{ sted }}</span>
+    </div>
+    {% endif %}
+
+    {% if sosialt %}
+    <div class="sosialt">
+      {% for s in sosialt %}
+      <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.navn }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>&copy; {{ aar }} {{ juridisk_navn or navn }}{% if sted %} · {{ sted }}{% endif %}</p>
+  </div>
+</footer>
+
+</body>
+</html>
