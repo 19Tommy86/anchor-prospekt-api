@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fant ikke bedriften</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: #f5f7fa;
+    color: #1f2933;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+  .boks {
+    background: #fff;
+    border: 1px solid #e4e7eb;
+    border-radius: 12px;
+    padding: 2.5rem;
+    max-width: 520px;
+    box-shadow: 0 2px 10px rgba(16, 24, 40, 0.05);
+  }
+  .ikon { font-size: 2.5rem; margin-bottom: 1rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.75rem; letter-spacing: -0.01em; }
+  .sok {
+    background: #f5f7fa;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin: 1.25rem 0;
+    font-size: 0.95rem;
+  }
+  .sok strong { color: #1e3a5f; }
+  .aarsak {
+    color: #52606d;
+    font-size: 0.95rem;
+    border-left: 3px solid #e4e7eb;
+    padding-left: 0.9rem;
+  }
+</style>
+</head>
+<body>
+  <div class="boks">
+    <div class="ikon" aria-hidden="true">🔍</div>
+    <h1>Vi fant ingen bedrift som matcher søket</h1>
+
+    <div class="sok">
+      Søkte etter: <strong>{{ sokt_navn }}</strong>, <strong>{{ sokt_by }}</strong>
+    </div>
+
+    <p class="aarsak">{{ feilmelding }}</p>
+  </div>
+</body>
+</html>

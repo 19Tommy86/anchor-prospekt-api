@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ firmanavn }}{% if adresse %} – {{ adresse }}{% endif %}</title>
+{# Meta-description er viktig for Google-indeksering av den genererte siden #}
+<meta name="description" content="{{ firmanavn }}{% if adresse %}, {{ adresse }}{% endif %}. Kontakt oss{% if telefon %} på {{ telefon }}{% endif %}.">
+<style>
+  /* All CSS er inline slik at siden er 100% selvstendig – ingen CDN, ingen
+     eksterne fonter. Da laster den raskt og kan lagres som én enkelt fil. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blaa: #1e3a5f;
+    --blaa-lys: #2d5580;
+    --aksent: #c9a227;
+    --tekst: #1f2933;
+    --tekst-svak: #52606d;
+    --bg: #f5f7fa;
+    --kort: #ffffff;
+    --kantlinje: #e4e7eb;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--tekst);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Topp / hero ---- */
+  .hero {
+    background: linear-gradient(135deg, var(--blaa) 0%, var(--blaa-lys) 100%);
+    color: #fff;
+    padding: 4rem 1.5rem 3.5rem;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: clamp(1.75rem, 5vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+  .hero .sted {
+    font-size: 1.05rem;
+    opacity: 0.85;
+    font-weight: 400;
+  }
+
+  /* ---- Rating ---- */
+  .rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 0.6rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+  }
+  /* To lag stjerner: grå bunn + gult topplag som klippes til rating-prosenten.
+     Unngår halvstjerne-tegn som mangler i mange fonter. */
+  .stjerner {
+    position: relative;
+    display: inline-block;
+    font-size: 1.05rem;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .stjerner .bunn { color: rgba(255, 255, 255, 0.35); }
+  .stjerner .topp {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    color: var(--aksent);
+  }
+  .rating .tall { font-weight: 700; }
+  .rating .antall { opacity: 0.8; }
+
+  /* ---- Handlingsknapp (ring oss) ---- */
+  .cta {
+    display: inline-block;
+    margin-top: 1.75rem;
+    background: var(--aksent);
+    color: #1a1a1a;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 0.9rem 2rem;
+    border-radius: 8px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  }
+  .cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.24); }
+
+  /* ---- Innhold ---- */
+  main { max-width: 760px; margin: -2rem auto 0; padding: 0 1.5rem 4rem; }
+
+  .kort {
+    background: var(--kort);
+    border: 1px solid var(--kantlinje);
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 10px rgba(16, 24, 40, 0.05);
+  }
+  .kort h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--tekst-svak);
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .linje { display: flex; align-items: flex-start; gap: 0.9rem; font-size: 1.05rem; }
+  .linje + .linje { margin-top: 0.9rem; }
+  .ikon { font-size: 1.15rem; line-height: 1.5; flex-shrink: 0; }
+  .linje a { color: var(--blaa); text-decoration: none; font-weight: 600; }
+  .linje a:hover { text-decoration: underline; }
+
+  /* ---- Åpningstider ---- */
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 0.6rem 0; border-bottom: 1px solid var(--kantlinje); font-size: 1rem; }
+  tr:last-child td { border-bottom: none; }
+  td.dag { color: var(--tekst-svak); }
+  td.tid { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .mangler { color: var(--tekst-svak); font-style: italic; font-size: 0.95rem; }
+
+  /* ---- Varsel om at bedriften er stengt ---- */
+  .varsel {
+    background: #fff4e5;
+    border: 1px solid #ffd8a8;
+    color: #7c4a03;
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem 1.5rem 3rem;
+    color: var(--tekst-svak);
+    font-size: 0.85rem;
+  }
+  footer a { color: var(--tekst-svak); }
+
+  @media (max-width: 480px) {
+    .hero { padding: 3rem 1.25rem 3rem; }
+    .kort { padding: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>{{ firmanavn }}</h1>
+  {% if adresse %}
+  <div class="sted">{{ adresse }}</div>
+  {% endif %}
+
+  {% if rating %}
+  <div class="rating">
+    <span class="stjerner" aria-hidden="true">
+      <span class="bunn">★★★★★</span>
+      <span class="topp" style="width: {{ stjerne_prosent }}%">★★★★★</span>
+    </span>
+    <span class="tall">{{ rating }}</span>
+    {% if antall_anmeldelser %}
+    <span class="antall">({{ antall_anmeldelser }} anmeldelser)</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if telefon_lenke %}
+  {# Den viktigste konverteringen for en lokal håndverker: ett trykk = ring #}
+  <div><a class="cta" href="{{ telefon_lenke }}">Ring {{ telefon }}</a></div>
+  {% endif %}
+</div>
+
+<main>
+  {% if driftsstatus and driftsstatus != 'OPERATIONAL' %}
+  <div class="varsel">
+    {% if driftsstatus == 'CLOSED_TEMPORARILY' %}
+      Merk: Denne bedriften er midlertidig stengt ifølge Google.
+    {% elif driftsstatus == 'CLOSED_PERMANENTLY' %}
+      Merk: Denne bedriften er registrert som permanent stengt hos Google.
+    {% else %}
+      Merk: Driftsstatus hos Google er «{{ driftsstatus }}».
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="kort">
+    <h2>Kontakt</h2>
+    {% if telefon %}
+    <div class="linje">
+      <span class="ikon" aria-hidden="true">📞</span>
+      <span><a href="{{ telefon_lenke }}">{{ telefon }}</a></span>
+    </div>
+    {% endif %}
+    {% if adresse %}
+    <div class="linje">
+      <span class="ikon" aria-hidden="true">📍</span>
+      <span>
+        {% if google_maps_url %}
+        <a href="{{ google_maps_url }}" target="_blank" rel="noopener noreferrer">{{ adresse }}</a>
+        {% else %}
+        {{ adresse }}
+        {% endif %}
+      </span>
+    </div>
+    {% endif %}
+    {% if not telefon and not adresse %}
+    <p class="mangler">Kontaktinformasjon er ikke registrert hos Google.</p>
+    {% endif %}
+  </div>
+
+  <div class="kort">
+    <h2>Åpningstider</h2>
+    {% if apningstider %}
+    <table>
+      {% for rad in apningstider %}
+      <tr>
+        <td class="dag">{{ rad.dag }}</td>
+        <td class="tid">{{ rad.tid }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="mangler">Åpningstider er ikke registrert hos Google. Ta kontakt på telefon.</p>
+    {% endif %}
+  </div>
+</main>
+
+<footer>
+  <p>Informasjon hentet fra Google Places.</p>
+  {% if google_maps_url %}
+  <p><a href="{{ google_maps_url }}" target="_blank" rel="noopener noreferrer">Se {{ firmanavn }} i Google Maps</a></p>
+  {% endif %}
+</footer>
+
+</body>
+</html>

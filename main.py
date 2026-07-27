@@ -1,10 +1,12 @@
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import pdfplumber, io, re
 
 from google_places_smb.place_lookup import hent_bedriftsdata
+from google_places_smb.nettside import render_bedriftsside, render_feilside
 
 app = FastAPI(title="Anchor Prospekt API")
 
@@ -96,6 +98,33 @@ def bedrift_lookup(navn: str, by: str):
     ikke (f.eks. bedriften finnes ikke, eller feil API-nøkkel på serveren).
     """
     return hent_bedriftsdata(navn, by)
+
+@app.get("/bedrift/nettside", response_class=HTMLResponse)
+def bedrift_nettside(navn: str, by: str):
+    """
+    Fase 2: Genererer en komplett, ferdig HTML-nettside for bedriften.
+
+    Samme input som /bedrift/lookup, men returnerer en visuell side i
+    stedet for JSON. Åpne denne URL-en rett i nettleseren:
+
+      /bedrift/nettside?navn=Hansen%20R%C3%B8rleggerservice&by=Horten
+
+    Ved treff: HTTP 200 med den genererte siden.
+    Ved bom (bedriften finnes ikke, feil API-nøkkel osv.): HTTP 404 med
+    en feilside som viser hva som ble søkt etter og hvorfor det feilet.
+    """
+    resultat = hent_bedriftsdata(navn, by)
+
+    if not resultat["success"]:
+        # 404 er riktig semantikk her: den forespurte ressursen (bedriften)
+        # kunne ikke fremskaffes. Vi returnerer likevel en lesbar HTML-side,
+        # ikke en rå feilmelding.
+        return HTMLResponse(
+            content=render_feilside(resultat["error"], navn, by),
+            status_code=404,
+        )
+
+    return HTMLResponse(content=render_bedriftsside(resultat["data"]))
 
 @app.get("/healthz")
 def healthz():
