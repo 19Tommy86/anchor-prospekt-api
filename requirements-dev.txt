@@ -1,0 +1,3 @@
+# Verktøy som kun trengs for å kjøre testene, ikke for å kjøre appen.
+pytest
+reportlab

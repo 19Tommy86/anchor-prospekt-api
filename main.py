@@ -1,79 +1,123 @@
-from fastapi import FastAPI, UploadFile, File
+"""
+Anchor Prospekt API
+===================
+Analyserer eiendomsprospekter etter BRRRR-metoden
+(Buy, Rehab, Rent, Refinance, Repeat).
+
+Endepunkter:
+    POST /ingest/pdf   Last opp salgsoppgave, få ut nøkkeltall
+    POST /analyze      Regn ut yield, kontantstrøm og refinansiering
+    GET  /healthz      Sjekk at tjenesten lever
+
+Selve regnestykkene ligger i beregning.py, PDF-uthentingen i prospekt.py.
+Denne filen er kun web-laget.
+"""
+
+import io
+
+import pdfplumber
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import pdfplumber, io, re
 
-app = FastAPI(title="Anchor Prospekt API")
+from beregning import Assumptions, ManglerPris, compute_metrics
+from prospekt import hent_nokkeltall
 
+app = FastAPI(title="Anchor Prospekt API", version="0.2.0")
+
+# allow_credentials=True sammen med allow_origins=["*"] er ugyldig etter
+# CORS-standarden, og nettlesere avviser kombinasjonen. API-et bruker
+# ikke cookies eller innlogging, så vi setter credentials til False.
+# Før produksjon: bytt "*" med de faktiske domenene frontend-en kjører på.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-class Assumptions(BaseModel):
-    interest_rate: float = 0.049
-    term_years: int = 30
-    renovation_budget: float = 300000.0
-    ltv_post_refi: float = 0.75
-    rent_est_mid: float = 13500.0
-    operating_cost_year: float = 45000.0
+# Grense for opplastede filer. Uten en grense kan en stor fil spise opp
+# minnet på serveren.
+MAKS_PDF_BYTES = 25 * 1024 * 1024  # 25 MB
+
 
 class AnalyzeRequest(BaseModel):
     extracted: dict
     assumptions: Assumptions
 
-def annuity_payment(principal: float, rate_year: float, years: int) -> float:
-    r = rate_year/12
-    n = years*12
-    return principal * (r*(1+r)**n) / ((1+r)**n - 1)
-
-def compute_metrics(ex, a: Assumptions):
-    total_cost = float(ex.get("totalpris") or ex.get("total_price") or 0) + a.renovation_budget
-    if not total_cost:
-        total_cost = 1733600 + a.renovation_budget
-    ek = 0.20 * total_cost
-    loan = total_cost - ek
-    pay_m = annuity_payment(loan, a.interest_rate, a.term_years)
-    income_year = a.rent_est_mid * 12
-    opex_year = a.operating_cost_year
-    gross_yield = (income_year) / total_cost if total_cost else 0
-    net_yield = (income_year - opex_year) / total_cost if total_cost else 0
-    cashflow_month = (income_year - opex_year - pay_m*12)/12
-
-    bra = float(ex.get("bra") or ex.get("BRA_m2") or ex.get("BRA") or 131)
-    psqm = float(ex.get("price_per_sqm_after") or ex.get("psqm_hint") or 30000)
-    arv_mid = bra * psqm
-    loan_balance = loan
-    refi_cashout_mid = max(0.0, a.ltv_post_refi*arv_mid - loan_balance)
-
-    return {
-        "total_cost": round(total_cost,2), "loan": round(loan,2), "equity": round(ek,2),
-        "gross_yield": gross_yield, "net_yield": net_yield,
-        "cashflow_month": cashflow_month,
-        "arv_mid": arv_mid, "refi_cashout_mid": refi_cashout_mid
-    }
 
 @app.post("/ingest/pdf")
 async def ingest_pdf(file: UploadFile = File(...)):
-    content = await file.read()
-    text = ""
-    with pdfplumber.open(io.BytesIO(content)) as pdf:
-        for page in pdf.pages:
-            text += "\n" + (page.extract_text() or "")
-    ex = {}
-    m = re.search(r"\bBRA\s*[:=]?\s*(\d+)", text, flags=re.IGNORECASE)
-    if m:
-        ex["BRA_m2"] = float(m.group(1))
-    return {"extracted": ex, "raw_preview": text[:1500]}
+    """
+    Leser en salgsoppgave (PDF) og henter ut nøkkeltall: totalpris,
+    prisantydning, BRA, P-rom, felleskostnader og kommunale avgifter.
+
+    Returnerer kun feltene som faktisk ble funnet. Mangler et felt, må
+    du fylle det inn selv før du kjører /analyze.
+    """
+    innhold = await file.read()
+
+    if not innhold:
+        raise HTTPException(status_code=400, detail="Filen er tom.")
+    if len(innhold) > MAKS_PDF_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Filen er større enn {MAKS_PDF_BYTES // 1024 // 1024} MB.",
+        )
+
+    # En ødelagt eller passordbeskyttet PDF skal gi en forståelig melding,
+    # ikke en teknisk kræsj med statuskode 500.
+    try:
+        tekst = ""
+        with pdfplumber.open(io.BytesIO(innhold)) as pdf:
+            for side in pdf.pages:
+                tekst += "\n" + (side.extract_text() or "")
+    except Exception as exc:  # noqa: BLE001 - pdfplumber kaster mange ulike feil
+        raise HTTPException(
+            status_code=400,
+            detail=f"Klarte ikke å lese PDF-en. Er filen gyldig? ({exc})",
+        ) from exc
+
+    if not tekst.strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Fant ingen tekst i PDF-en. Den er sannsynligvis en skannet "
+                "bildefil. Da må nøkkeltallene fylles inn manuelt."
+            ),
+        )
+
+    ekstrahert = hent_nokkeltall(tekst)
+
+    return {
+        "extracted": ekstrahert,
+        "mangler": [f for f in ("totalpris", "BRA_m2") if f not in ekstrahert],
+        "raw_preview": tekst[:1500],
+    }
+
 
 @app.post("/ingest/url")
 async def ingest_url(payload: dict):
+    """Ikke implementert ennå – last opp PDF i stedet."""
     return {"note": "URL-ingest kommer i v2. Last opp PDF nå.", "url": payload.get("url")}
+
 
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
-    return compute_metrics(req.extracted, req.assumptions)
+    """
+    Regner ut nøkkeltallene for eiendommen.
+
+    Krever at 'extracted' inneholder en kjøpesum (totalpris eller
+    prisantydning). Mangler den, får du en feilmelding i stedet for tall
+    – tidligere gjettet koden på et beløp, noe som ga yield-tall som var
+    flere ganger for høye.
+    """
+    try:
+        return compute_metrics(req.extracted, req.assumptions)
+    except ManglerPris as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
 
 @app.get("/healthz")
 def healthz():
