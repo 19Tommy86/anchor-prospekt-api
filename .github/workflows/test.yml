@@ -1,0 +1,26 @@
+name: Tester
+
+# Kjører automatisk på hver push og hver pull request, slik at feil
+# fanges opp før de havner i main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer avhengigheter
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Kjør tester
+        run: pytest -q
