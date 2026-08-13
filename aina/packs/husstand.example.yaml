@@ -1,0 +1,124 @@
+# =============================================================================
+# Husstandsprofil — eksempel
+# =============================================================================
+# Kopier til packs/husstand.yaml og fyll ut. Den filen er blokkert i .gitignore
+# og skal aldri committes.
+#
+# Dette er «hvem beskytter jeg». Alt Aina svarer i en krise henter kontekst
+# herfra. Bruk fem minutter på den nå, mens du har overskudd.
+# =============================================================================
+
+navn: "Familien Pedersen"
+
+# Posisjon — brukes til vær, varsler, avstander og kart.
+lat: 59.9139
+lon: 10.7522
+adresse: "Eksempelveien 1, 0123 Oslo"
+kommune: "Oslo"
+prisomrade: "NO1"          # NO1 NO2 NO3 NO4 NO5
+
+# Hvor møtes dere hvis mobilnettet er nede og dere er adskilt?
+# Dette feltet er det viktigste i hele filen. Avtal det ved middagsbordet.
+motepunkt: "Ved flaggstanga på skoleplassen. Andre valg: bensinstasjonen på E6."
+
+varmekilde: "Vedovn i stua, ca. 2 favner ved i boden"
+v2l_kjoretoy: "Hyundai Ioniq 5, 3,6 kW V2L via uttak i bagasjerommet"
+batteri_kwh: 1.28
+
+# -----------------------------------------------------------------------------
+personer:
+  - navn: "Tommy"
+    rolle: "voksen"
+    fodselsaar: 1986
+    telefon: "+47 900 00 000"
+
+  - navn: "Aina"
+    rolle: "voksen"
+    telefon: "+47 900 00 001"
+    allergier: ["penicillin"]
+
+  - navn: "Barn 1"
+    rolle: "barn"
+    fodselsaar: 2016
+    medisiner: ["astmamedisin (Ventoline), i skapet på badet"]
+
+  - navn: "Barn 2"
+    rolle: "barn"
+    fodselsaar: 2019
+
+  - navn: "Balder"
+    rolle: "dyr"
+    merknad: "Hund, 28 kg. Fôr til 10 dager i boden."
+
+# -----------------------------------------------------------------------------
+# Steder. Fyll ut det du vet nå — Aina fyller ut resten automatisk fra
+# offentlige kilder (Geonorge, OSM) når beredskapspakken bygges.
+steder:
+  - navn: "Offentlig tilfluktsrom, Eksempel skole"
+    type: "tilfluktsrom"
+    adresse: "Skoleveien 4"
+    avstand_km: 1.2
+    merknad: "Sjekk DSBs oversikt — kapasitet og status kan endres"
+
+  - navn: "Legevakten"
+    type: "legevakt"
+    adresse: "Storgata 40"
+    avstand_km: 3.4
+    merknad: "Døgnåpent. 116 117"
+
+  - navn: "Apotek 1"
+    type: "apotek"
+    avstand_km: 0.9
+
+  - navn: "Drikkevannspost i parken"
+    type: "vann"
+    avstand_km: 0.4
+    merknad: "Stengt om vinteren — bekken bak huset er reserve, må kokes"
+
+  - navn: "Bensinstasjon"
+    type: "drivstoff"
+    avstand_km: 2.1
+    merknad: "Pumpene krever strøm. Fyll tanken før varslet uvær."
+
+  - navn: "Naboen i nr. 3"
+    type: "kontakt"
+    merknad: "Har aggregat og satellittelefon. Avtalt gjensidig hjelp."
+
+# -----------------------------------------------------------------------------
+# Lager. Aina varsler i god tid før noe går ut på dato eller tar slutt.
+ressurser:
+  - navn: "Drikkevann på dunk"
+    kategori: "vann"
+    mengde: 60
+    enhet: "liter"
+    forbruk_per_dogn: 12        # 3 liter x 4 personer
+
+  - navn: "Hermetikk og tørrvarer"
+    kategori: "mat"
+    mengde: 14
+    enhet: "dagsrasjoner"
+    holdbar_til: "2027-03-01"
+    forbruk_per_dogn: 1
+
+  - navn: "Ved"
+    kategori: "ved"
+    mengde: 2
+    enhet: "favner"
+    forbruk_per_dogn: 0.1
+
+  - navn: "Bensin til aggregat"
+    kategori: "drivstoff"
+    mengde: 20
+    enhet: "liter"
+    holdbar_til: "2027-01-01"
+
+  - navn: "Astmamedisin, reserve"
+    kategori: "medisin"
+    mengde: 1
+    enhet: "pakke"
+    holdbar_til: "2027-06-01"
+
+  - navn: "Batterier AA"
+    kategori: "batteri"
+    mengde: 24
+    enhet: "stk"

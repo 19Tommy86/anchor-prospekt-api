@@ -1,0 +1,14 @@
+# TLS mot veggpanelet med lokal CA. Ingen porter mot internett.
+# Fjerntilgang går over WireGuard — se ../docs/07.
+aina.local {
+	tls internal
+
+	handle /api/* {
+		reverse_proxy aina-core:8080
+	}
+
+	handle {
+		root * /srv/panel
+		file_server
+	}
+}

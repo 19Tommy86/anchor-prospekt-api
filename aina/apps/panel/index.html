@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aina</title>
+<!--
+  Veggpanelet — første versjon.
+
+  Designreglene fra ../../docs/06-stemme-og-veggpanel.md er implementert her:
+    · lesbart på tre meters avstand
+    · ingen scrolling i beredskapsnivå
+    · datas alder vises alltid, aldri skjult i en tooltip
+    · ingen spinnere — gamle data vises med tidsstempel i stedet for tom skjerm
+    · layoutet bytter helt ved nivåskifte, ikke bare farge
+
+  Ingen eksterne ressurser. Panelet skal laste fra en lokal server uten nett.
+-->
+<style>
+  :root {
+    --bg: #0d1117; --flate: #161b22; --kant: #21262d;
+    --tekst: #e6edf3; --dempet: #8b949e;
+    --aksent: #2f81f7; --ok: #3fb950; --gul: #d29922; --oransje: #db6d28; --rod: #f85149;
+    --niva: var(--ok);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--tekst);
+    font: 400 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    height: 100vh; overflow: hidden; padding: 3vh 4vw;
+    display: flex; flex-direction: column; gap: 3vh;
+    transition: filter .6s ease;
+  }
+  body[data-dimmet="true"] { filter: brightness(.4); }
+
+  header { display: flex; justify-content: space-between; align-items: baseline; }
+  .dato { color: var(--dempet); font-size: clamp(16px, 2vw, 22px); }
+  .nivaa {
+    display: flex; align-items: center; gap: .6em;
+    font-size: clamp(14px, 1.6vw, 19px); letter-spacing: .08em;
+    text-transform: uppercase; color: var(--niva); font-weight: 600;
+  }
+  .prikk { width: .7em; height: .7em; border-radius: 50%; background: var(--niva); }
+  body[data-niva="ORANSJE"] .prikk, body[data-niva="ROD"] .prikk {
+    animation: puls 2s ease-in-out infinite;
+  }
+  @keyframes puls { 50% { opacity: .25; } }
+
+  main { flex: 1; display: grid; gap: 3vh 4vw; grid-template-columns: 1.2fr 1fr; }
+  @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
+
+  .temp { font-size: clamp(64px, 11vw, 150px); font-weight: 200; line-height: .95; }
+  .beskrivelse { font-size: clamp(20px, 2.6vw, 32px); color: var(--dempet); }
+  .detaljer { margin-top: 1.5vh; color: var(--dempet); font-size: clamp(15px, 1.7vw, 20px); }
+
+  h2 {
+    font-size: clamp(12px, 1.3vw, 15px); letter-spacing: .12em;
+    text-transform: uppercase; color: var(--dempet); font-weight: 600; margin-bottom: 1vh;
+  }
+  .rad { display: flex; gap: 1em; padding: .5em 0; border-bottom: 1px solid var(--kant); }
+  .rad time { color: var(--dempet); font-variant-numeric: tabular-nums; min-width: 4.5em; }
+  .stor { font-size: clamp(20px, 2.4vw, 30px); }
+
+  /* Alder er aldri skjult. Se designregel 3. */
+  .alder { color: var(--gul); font-size: clamp(13px, 1.4vw, 17px); margin-top: .6vh; }
+  .alder[data-ferskt="true"] { color: var(--dempet); }
+
+  .varsel {
+    background: color-mix(in srgb, var(--niva) 12%, transparent);
+    border-left: 4px solid var(--niva);
+    padding: 1.4vh 1.6vw; border-radius: 6px; margin-bottom: 2vh;
+  }
+  .handling {
+    display: block; width: 100%; text-align: left;
+    background: var(--flate); border: 1px solid var(--kant); color: var(--tekst);
+    padding: 1.6vh 1.6vw; margin-bottom: 1vh; border-radius: 8px;
+    font-size: clamp(17px, 2vw, 24px); cursor: pointer;
+  }
+  .handling:active { background: var(--kant); }
+
+  footer {
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--dempet); font-size: clamp(14px, 1.6vw, 19px);
+  }
+  .mic::before { content: "🎤 "; }
+  .feil { color: var(--rod); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body data-niva="GRONN">
+
+<header>
+  <span class="dato" id="dato"></span>
+  <span class="nivaa"><span class="prikk"></span><span id="etikett">Kobler til …</span></span>
+</header>
+
+<main>
+  <!-- Normalvisning: GRØNN og GUL -->
+  <section id="normal">
+    <div class="temp" id="temp">–</div>
+    <div class="beskrivelse" id="beskrivelse">venter på data</div>
+    <div class="detaljer" id="vaerdetaljer"></div>
+    <div class="alder" id="vaeralder"></div>
+  </section>
+
+  <section id="sidespalte">
+    <h2>I dag</h2>
+    <div id="kalender"><div class="rad"><span>Kalender kobles til i M1</span></div></div>
+    <h2 style="margin-top:3vh">Strøm</h2>
+    <div id="strom" class="stor">–</div>
+    <div class="alder" id="stromalder"></div>
+  </section>
+
+  <!-- Beredskapsvisning: ORANSJE og RØD. Erstatter hele layoutet. -->
+  <section id="beredskap" hidden style="grid-column: 1 / -1">
+    <div class="varsel">
+      <div class="stor" id="beredskapstittel"></div>
+      <div id="beredskapsaarsak" style="color:var(--dempet);margin-top:.6vh"></div>
+    </div>
+    <button class="handling" onclick="visProsedyre('stromutfall')">▸ Sjekkliste: strømbrudd</button>
+    <button class="handling" onclick="visProsedyre('evakuering')">▸ Sjekkliste: evakuering</button>
+    <button class="handling" id="tilfluktsrom">▸ Nærmeste tilfluktsrom</button>
+    <div class="alder" id="beredskapsdata"></div>
+  </section>
+</main>
+
+<footer>
+  <span class="mic" id="mic">Si «Hei Aina»</span>
+  <span id="feil" class="feil"></span>
+</footer>
+
+<script>
+const NIVAAFARGE = { GRONN: "var(--ok)", GUL: "var(--gul)", ORANSJE: "var(--oransje)", ROD: "var(--rod)" };
+
+async function hent(sti) {
+  const r = await fetch(sti);
+  if (!r.ok) throw new Error(`${sti} → ${r.status}`);
+  return r.json();
+}
+
+function settAlder(el, svar) {
+  // Designregel 3: alderen står ved siden av tallet, ikke gjemt bak et ikon.
+  el.textContent = svar.er_gammelt
+    ? `Hentet ${svar.alder_tekst} — ingen oppdatering siden`
+    : `Oppdatert ${svar.alder_tekst}`;
+  el.dataset.ferskt = String(!svar.er_gammelt);
+}
+
+async function oppdaterStatus() {
+  const s = await hent("/api/status");
+  const beredskap = s.beredskapsnivaa === "ORANSJE" || s.beredskapsnivaa === "ROD";
+
+  document.body.dataset.niva = s.beredskapsnivaa;
+  document.documentElement.style.setProperty("--niva", NIVAAFARGE[s.beredskapsnivaa]);
+  document.getElementById("etikett").textContent = s.etikett;
+
+  // Skjermen er en av de største strømpostene — se docs/04.
+  document.body.dataset.dimmet = String(s.panel_lysstyrke < 0.5);
+
+  document.getElementById("normal").hidden = beredskap;
+  document.getElementById("sidespalte").hidden = beredskap;
+  document.getElementById("beredskap").hidden = !beredskap;
+
+  if (beredskap) {
+    const timer = s.gjenstaende_timer ? ` — ca. ${s.gjenstaende_timer} t igjen på batteri` : "";
+    document.getElementById("beredskapstittel").textContent = s.etikett + timer;
+    document.getElementById("beredskapsaarsak").textContent = s.aarsak;
+  }
+
+  // I RØD er stemmelaget slått av. Da skal panelet si det, ikke late som.
+  document.getElementById("mic").textContent =
+    s.modell === null ? "Stemme av for å spare strøm — bruk berøring" : "Si «Hei Aina»";
+}
+
+async function oppdaterVaer() {
+  const svar = await hent("/api/vaer");
+  const naa = svar.verdi.punkter?.[0];
+  if (!naa) return;
+  document.getElementById("temp").textContent = `${Math.round(naa.temperatur)}°`;
+  document.getElementById("beskrivelse").textContent = naa.beskrivelse;
+  document.getElementById("vaerdetaljer").textContent =
+    `vind ${naa.vind} m/s` + (naa.nedbor_mm ? ` · ${naa.nedbor_mm} mm nedbør` : "");
+  settAlder(document.getElementById("vaeralder"), svar);
+}
+
+async function oppdaterStrom() {
+  const svar = await hent("/api/strompris");
+  const b = svar.verdi.billigste;
+  document.getElementById("strom").textContent = b
+    ? `Billigst ${new Date(b.fra).getHours()}–${new Date(b.til).getHours()} · ${b.snitt_kr_per_kwh.toFixed(2)} kr/kWh`
+    : "Ingen priser";
+  settAlder(document.getElementById("stromalder"), svar);
+}
+
+function visProsedyre(navn) {
+  location.href = `/prosedyrer/${navn}.html`;
+}
+
+async function tick() {
+  document.getElementById("dato").textContent =
+    new Date().toLocaleDateString("nb-NO", { weekday: "long", day: "numeric", month: "long" });
+
+  // Hver oppdatering feiler for seg. Én død konnektor skal ikke tømme skjermen.
+  const feil = [];
+  for (const [navn, fn] of [["status", oppdaterStatus], ["vær", oppdaterVaer], ["strøm", oppdaterStrom]]) {
+    try { await fn(); } catch (e) { feil.push(navn); console.warn(navn, e); }
+  }
+  document.getElementById("feil").textContent = feil.length ? `Uten kontakt: ${feil.join(", ")}` : "";
+}
+
+tick();
+setInterval(tick, 60_000);
+</script>
+</body>
+</html>

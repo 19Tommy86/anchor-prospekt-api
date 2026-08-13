@@ -1,0 +1,43 @@
+# Kjører når aina/ er løftet ut i sitt eget repo — GitHub Actions leser kun
+# workflows fra repoets rot. Se scripts/bootstrap-new-repo.sh.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/aina-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check aina tests
+
+      - name: Tester
+        run: pytest -q
+
+  hemmeligheter:
+    # Husstandsprofiler og .env skal aldri havne i historikken.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sjekk at ingen hemmeligheter er committet
+        run: |
+          if git ls-files | grep -E '^(\.env$|packs/husstand\.yaml$|secrets/)'; then
+            echo "::error::Hemmeligheter eller husstandsdata er committet"
+            exit 1
+          fi
+          echo "OK — ingen hemmeligheter i indeksen"
