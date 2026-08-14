@@ -1,0 +1,136 @@
+# =============================================================================
+# Aina — hele stacken på én node
+# =============================================================================
+#   docker compose --profile full up -d      alt (normal drift)
+#   docker compose --profile kjerne up -d    kun det som kjører i nivå RØD
+#
+# Profilene er ikke kosmetiske: beredskapsmotoren stopper og starter tjenester
+# etter nivå. Se ../docs/02-arkitektur.md § Prosesser.
+#
+# Ingen tjeneste her eksponeres mot internett. Fjerntilgang går over WireGuard.
+# =============================================================================
+
+services:
+  aina-core:
+    build: ../services/aina-core
+    profiles: [kjerne, full]
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../packs:/app/packs:ro
+      - aina-data:/app/data
+    depends_on: [mosquitto]
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    profiles: [kjerne, full]
+    restart: unless-stopped
+    network_mode: host          # kreves for oppdaging av enheter på LAN
+    privileged: true            # kreves for USB: Z-Wave/Zigbee-pinner
+    volumes:
+      - ha-config:/config
+      - /run/dbus:/run/dbus:ro
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    profiles: [kjerne, full]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-data:/mosquitto/data
+
+  radicale:
+    # Lokal CalDAV. Grunnen til at «har jeg møter i dag?» virker uten internett.
+    image: tomsquest/docker-radicale:latest
+    profiles: [kjerne, full]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5232:5232"
+    volumes:
+      - radicale-data:/data
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: [kjerne, full]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aina
+      POSTGRES_USER: aina
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_passord
+    secrets: [pg_passord]
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  # --- Stemmelaget. Slås av i ORANSJE og RØD for å spare strøm. --------------
+
+  whisper:
+    image: rhasspy/wyoming-whisper:latest
+    profiles: [full]
+    restart: unless-stopped
+    command: --model small --language no
+    ports:
+      - "127.0.0.1:10300:10300"
+    volumes:
+      - whisper-data:/data
+
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    profiles: [full]
+    restart: unless-stopped
+    command: --voice nb_NO-talesyntese-medium
+    ports:
+      - "127.0.0.1:10200:10200"
+    volumes:
+      - piper-data:/data
+
+  openwakeword:
+    image: rhasspy/wyoming-openwakeword:latest
+    profiles: [full]
+    restart: unless-stopped
+    command: --preload-model hei_aina
+    ports:
+      - "127.0.0.1:10400:10400"
+    volumes:
+      - ./wakeword:/custom:ro
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: [full]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+  # --- Panelet ---------------------------------------------------------------
+
+  caddy:
+    # TLS mot veggpanelet. Lokal CA — se ../docs/07 § mTLS.
+    image: caddy:2-alpine
+    profiles: [kjerne, full]
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../apps/panel:/srv/panel:ro
+      - caddy-data:/data
+
+secrets:
+  pg_passord:
+    file: ./secrets/pg_passord.txt
+
+volumes:
+  aina-data:
+  ha-config:
+  mqtt-data:
+  radicale-data:
+  pg-data:
+  whisper-data:
+  piper-data:
+  ollama-data:
+  caddy-data:

@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Demo av veggpanelet med simulerte data. Beredskapsmotoren fra
+  services/aina-core/aina/readiness.py er portert til JS her, med komprimerte
+  terskler slik at nivåbyttene kan sees uten å vente i fem minutter.
+
+  Den ekte panelet ligger i index.html og henter data fra /api/*.
+-->
+<title>Aina veggpanel</title>
+<style>
+/*
+  Bevisst enkelt-tema: dette er en skjerm som henger på en vegg i en gang, ofte
+  i mørke, og som skal dimmes for å spare strøm. Den har aldri en lys modus.
+  Derfor er alle farger malt eksplisitt, uten prefers-color-scheme.
+
+  Grepet i paletten: aksentfargen ER beredskapsnivået. Hele panelet skifter
+  karakter når tilstanden endrer seg — det er ikke pynt, det er informasjon.
+*/
+:root {
+  --grunn:    #080B10;
+  --flate:    #10151D;
+  --flate-2:  #161D27;
+  --linje:    #232D3A;
+  --tekst:    #E6ECF4;
+  --dempet:   #7C8B9E;   /* blågrå, ikke nøytral grå — matcher det kalde grunnlaget */
+
+  --gronn:    #3FB27F;
+  --gul:      #D8A33A;
+  --oransje:  #E07A3C;
+  --rod:      #E2564D;
+
+  --niva: var(--gronn);
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--grunn);
+  color: var(--tekst);
+  font-family: var(--sans);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 48px) clamp(16px, 4vw, 40px) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 40px);
+}
+
+/* ---------- sidehode ---------- */
+
+.merke {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--dempet);
+  display: flex;
+  align-items: center;
+  gap: .8em;
+}
+.merke::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--linje);
+}
+
+h1 {
+  font-size: clamp(28px, 4.4vw, 44px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin-top: .35em;
+}
+
+.ingress {
+  color: var(--dempet);
+  max-width: 62ch;
+  margin-top: .7em;
+  font-size: clamp(15px, 1.5vw, 17px);
+}
+
+/* ---------- oppsett ---------- */
+
+.oppsett {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, .85fr);
+  gap: clamp(20px, 3vw, 34px);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .oppsett { grid-template-columns: 1fr; }
+}
+
+/* ---------- selve panelet ---------- */
+
+.ramme {
+  background: #05070A;
+  border: 1px solid var(--linje);
+  border-radius: 14px;
+  padding: clamp(10px, 1.4vw, 16px);
+  box-shadow: 0 24px 60px -30px rgb(0 0 0 / .9);
+}
+
+.skjerm {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  min-height: 340px;
+  background: var(--grunn);
+  border-radius: 6px;
+  overflow: hidden;
+  padding: clamp(16px, 2.6vw, 30px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 22px);
+  transition: filter .7s ease;
+}
+.skjerm::before {
+  /* svak glød i nivåfargen — panelet «lyser» i tilstanden sin */
+  content: "";
+  position: absolute;
+  inset: -40% -10% auto -10%;
+  height: 70%;
+  background: radial-gradient(ellipse at 50% 100%, var(--niva) 0%, transparent 70%);
+  opacity: .10;
+  pointer-events: none;
+}
+.skjerm[data-dimmet="true"] { filter: brightness(.42); }
+
+.skjermtopp {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1em;
+  position: relative;
+}
+.dato {
+  font-size: clamp(13px, 1.5vw, 17px);
+  color: var(--dempet);
+}
+.nivaamerke {
+  display: flex;
+  align-items: center;
+  gap: .6em;
+  font-family: var(--mono);
+  font-size: clamp(10px, 1.15vw, 13px);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--niva);
+  white-space: nowrap;
+}
+.prikk {
+  width: .62em;
+  height: .62em;
+  border-radius: 50%;
+  background: var(--niva);
+  box-shadow: 0 0 12px var(--niva);
+}
+.skjerm[data-niva="ORANSJE"] .prikk,
+.skjerm[data-niva="ROD"] .prikk { animation: puls 2.2s ease-in-out infinite; }
+@keyframes puls { 50% { opacity: .2; } }
+
+.skjermkropp {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: clamp(14px, 2.4vw, 30px);
+  min-height: 0;
+  position: relative;
+}
+.skjermkropp[data-modus="beredskap"] { grid-template-columns: 1fr; }
+
+/* normalvisning */
+
+.temp {
+  font-size: clamp(56px, 9.5vw, 118px);
+  font-weight: 200;
+  line-height: .92;
+  letter-spacing: -0.04em;
+}
+.vaertekst {
+  font-size: clamp(16px, 2.1vw, 26px);
+  color: var(--dempet);
+  margin-top: .1em;
+}
+.vaerdetalj {
+  font-family: var(--mono);
+  font-size: clamp(11px, 1.3vw, 14px);
+  color: var(--dempet);
+  margin-top: .9em;
+}
+
+.bolk + .bolk { margin-top: clamp(14px, 2.2vw, 26px); }
+h2 {
+  font-family: var(--mono);
+  font-size: clamp(9px, 1.05vw, 11px);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--dempet);
+  font-weight: 500;
+  margin-bottom: .7em;
+}
+
+.rad {
+  display: flex;
+  gap: 1em;
+  padding: .42em 0;
+  border-bottom: 1px solid var(--linje);
+  font-size: clamp(13px, 1.5vw, 17px);
+}
+.rad time {
+  font-family: var(--mono);
+  color: var(--dempet);
+  min-width: 4.2em;
+  font-variant-numeric: tabular-nums;
+}
+.pris {
+  font-size: clamp(15px, 1.9vw, 22px);
+  font-variant-numeric: tabular-nums;
+}
+
+/* alderen er aldri gjemt — designregel 3 i docs/06 */
+.alder {
+  font-family: var(--mono);
+  font-size: clamp(10px, 1.2vw, 13px);
+  margin-top: .8em;
+  color: var(--dempet);
+}
+.alder[data-tilstand="gammelt"] { color: var(--gul); }
+.alder[data-tilstand="ubrukelig"] { color: var(--rod); }
+
+.vetikke {
+  border: 1px dashed var(--linje);
+  border-radius: 8px;
+  padding: 1em 1.1em;
+  color: var(--dempet);
+  font-size: clamp(13px, 1.5vw, 16px);
+  max-width: 34ch;
+}
+
+/* beredskapsvisning */
+
+.varsel {
+  border-left: 3px solid var(--niva);
+  background: color-mix(in srgb, var(--niva) 11%, transparent);
+  border-radius: 0 8px 8px 0;
+  padding: .9em 1.1em;
+  margin-bottom: clamp(12px, 1.8vw, 20px);
+}
+.varseltittel {
+  font-size: clamp(17px, 2.3vw, 27px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.varselgrunn {
+  font-family: var(--mono);
+  font-size: clamp(11px, 1.25vw, 14px);
+  color: var(--dempet);
+  margin-top: .35em;
+}
+
+.handlinger { display: flex; flex-direction: column; gap: .55em; }
+.handling {
+  display: flex;
+  align-items: center;
+  gap: .7em;
+  background: var(--flate);
+  border: 1px solid var(--linje);
+  border-radius: 8px;
+  padding: clamp(.6em, 1.4vw, .85em) 1em;
+  color: var(--tekst);
+  font: inherit;
+  font-size: clamp(14px, 1.7vw, 19px);
+  text-align: left;
+  cursor: pointer;
+}
+.handling:hover { background: var(--flate-2); }
+.handling .pil { color: var(--niva); }
+
+.familie {
+  font-family: var(--mono);
+  font-size: clamp(10px, 1.2vw, 13px);
+  color: var(--dempet);
+  margin-top: clamp(12px, 1.8vw, 20px);
+  padding-top: .8em;
+  border-top: 1px solid var(--linje);
+}
+
+.skjermbunn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+  font-size: clamp(12px, 1.4vw, 16px);
+  color: var(--dempet);
+  position: relative;
+}
+
+/* ---------- kontrollpanel ---------- */
+
+.kontroll {
+  background: var(--flate);
+  border: 1px solid var(--linje);
+  border-radius: 14px;
+  padding: clamp(18px, 2.2vw, 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: sticky;
+  top: 24px;
+}
+@media (max-width: 900px) { .kontroll { position: static; } }
+
+.gruppe { display: flex; flex-direction: column; gap: 10px; }
+.gruppe > h3 {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--dempet);
+  font-weight: 500;
+}
+
+.bryter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  background: var(--flate-2);
+  border: 1px solid var(--linje);
+  border-radius: 9px;
+  padding: 11px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.bryter:hover { border-color: #2f3b4a; }
+.bryter span { font-size: 14px; }
+.bryter input { position: absolute; opacity: 0; pointer-events: none; }
+.lampe {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--gronn);
+  white-space: nowrap;
+}
+.bryter[data-av="true"] .lampe { color: var(--rod); }
+.bryter:focus-within { outline: 2px solid var(--niva); outline-offset: 2px; }
+
+.skyv { display: flex; flex-direction: column; gap: 7px; }
+.skyv label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.skyv b {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--niva);
+}
+input[type="range"] { width: 100%; accent-color: #5C7A99; }
+input[type="range"]:disabled { opacity: .35; }
+
+.valg { display: flex; gap: 6px; flex-wrap: wrap; }
+.valg button {
+  flex: 1;
+  min-width: 82px;
+  background: var(--flate-2);
+  border: 1px solid var(--linje);
+  border-radius: 8px;
+  color: var(--dempet);
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 6px;
+  cursor: pointer;
+}
+.valg button[aria-pressed="true"] {
+  color: var(--tekst);
+  border-color: color-mix(in srgb, var(--niva) 55%, var(--linje));
+  background: color-mix(in srgb, var(--niva) 13%, var(--flate-2));
+}
+.valg button:focus-visible,
+.handling:focus-visible { outline: 2px solid var(--niva); outline-offset: 2px; }
+
+/* motorutlesning */
+
+.motor {
+  border-top: 1px solid var(--linje);
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.motorrad { display: flex; justify-content: space-between; gap: 1em; }
+.motorrad dt { color: var(--dempet); }
+.motorrad dd { text-align: right; font-variant-numeric: tabular-nums; }
+.motorrad dd.niva { color: var(--niva); }
+.nedtrapping { color: var(--gul); }
+
+/* ---------- noter ---------- */
+
+.noter {
+  border-top: 1px solid var(--linje);
+  padding-top: clamp(20px, 3vw, 32px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(18px, 2.6vw, 30px);
+}
+.note h4 {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: .45em;
+}
+.note p {
+  color: var(--dempet);
+  font-size: 14px;
+}
+.note code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--tekst);
+  background: var(--flate);
+  border: 1px solid var(--linje);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.simulert {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gul);
+  border: 1px solid color-mix(in srgb, var(--gul) 35%, transparent);
+  border-radius: 999px;
+  padding: 4px 11px;
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <p class="merke">Aina · veggpanel</p>
+    <h1>Slik ser panelet ut når verden endrer seg</h1>
+    <p class="ingress">
+      Panelet henger i gangen og skal leses på tre meters avstand. Det som er verdt å se etter
+      er ikke fargen — det er at <em>hele layoutet</em> bytter når strømmen går, at alderen på
+      dataene alltid står synlig, og at språkmodellen forsvinner helt når batteriet blir kritisk.
+      Skru av nettet og strømmen i kontrollpanelet til høyre.
+    </p>
+    <p style="margin-top:1.1em"><span class="simulert">Simulerte data</span></p>
+  </header>
+
+  <div class="oppsett">
+
+    <!-- ============ PANELET ============ -->
+    <div class="ramme">
+      <div class="skjerm" id="skjerm" data-niva="GRONN" data-dimmet="false">
+
+        <div class="skjermtopp">
+          <span class="dato" id="dato">torsdag 13. august</span>
+          <span class="nivaamerke"><span class="prikk"></span><span id="etikett">Alt normalt</span></span>
+        </div>
+
+        <div class="skjermkropp" id="kropp" data-modus="normal">
+
+          <!-- normalvisning -->
+          <section id="normal">
+            <div id="vaerkort">
+              <div class="temp">17°</div>
+              <div class="vaertekst">lett regn</div>
+              <div class="vaerdetalj">↑ 19°  ↓ 12°   vind 4 m/s NV   ·   0,4 mm nedbør</div>
+            </div>
+            <div id="vaertomt" class="vetikke" hidden>
+              Jeg har ikke noe brukbart værvarsel. Siste henting er fra 4. august og er for
+              gammel til å si noe om i dag.
+            </div>
+            <div class="alder" id="vaeralder" data-tilstand="ferskt">Oppdatert 12 min siden</div>
+          </section>
+
+          <section id="sidespalte">
+            <div class="bolk">
+              <h2>I dag</h2>
+              <div class="rad"><time>09:00</time><span>Tannlege</span></div>
+              <div class="rad"><time>14:30</time><span>Fotballtrening</span></div>
+              <div class="rad"><time>19:00</time><span>Foreldremøte</span></div>
+            </div>
+            <div class="bolk">
+              <h2>Strøm</h2>
+              <div class="pris">Billigst 02–05 · 0,41 kr/kWh</div>
+              <div class="alder" id="stromalder" data-tilstand="ferskt">Oppdatert 2 t siden</div>
+            </div>
+          </section>
+
+          <!-- beredskapsvisning -->
+          <section id="beredskap" hidden>
+            <div class="varsel">
+              <div class="varseltittel" id="beredskapstittel">Strømbrudd</div>
+              <div class="varselgrunn" id="beredskapsgrunn">Nettstrøm borte, batteri 71 %</div>
+            </div>
+            <div class="handlinger">
+              <button class="handling" type="button"><span class="pil">▸</span> Sjekkliste: strømbrudd</button>
+              <button class="handling" type="button"><span class="pil">▸</span> Nærmeste tilfluktsrom — 1,2 km</button>
+              <button class="handling" type="button" id="handling3"><span class="pil">▸</span> Send melding på Meshtastic</button>
+            </div>
+            <div class="familie" id="familie">
+              Siste varsel 03:00 (5 t gammelt): oransje farevarsel, sterk vind til 22:00
+              <br>Familien: Tommy hjemme · Aina hjemme · 2 barn sist sett 21:40
+            </div>
+          </section>
+
+        </div>
+
+        <div class="skjermbunn">
+          <span id="mikrofon">🎤 Si «Hei Aina»</span>
+          <span class="alder" id="nettstatus" style="margin:0"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ KONTROLLPANEL ============ -->
+    <aside class="kontroll">
+
+      <div class="gruppe">
+        <h3>Verdens tilstand</h3>
+
+        <label class="bryter" id="br-internett" data-av="false">
+          <input type="checkbox" id="internett" checked>
+          <span>Internett</span>
+          <span class="lampe">TILKOBLET</span>
+        </label>
+
+        <label class="bryter" id="br-strom" data-av="false">
+          <input type="checkbox" id="nettstrom" checked>
+          <span>Nettstrøm</span>
+          <span class="lampe">PÅ</span>
+        </label>
+
+        <div class="skyv">
+          <label for="batteri"><span>Batteri</span><b id="batteriverdi">100 %</b></label>
+          <input type="range" id="batteri" min="0" max="100" value="100" step="1" disabled>
+        </div>
+      </div>
+
+      <div class="gruppe">
+        <h3>Alder på værdata</h3>
+        <div class="valg" id="datavalg">
+          <button type="button" data-data="ferskt" aria-pressed="true">Ferskt</button>
+          <button type="button" data-data="gammelt" aria-pressed="false">14 t</button>
+          <button type="button" data-data="ubrukelig" aria-pressed="false">For gammelt</button>
+        </div>
+      </div>
+
+      <dl class="motor">
+        <div class="motorrad"><dt>Målt nivå</dt><dd id="m-raatt">GRONN</dd></div>
+        <div class="motorrad"><dt>Gjeldende nivå</dt><dd class="niva" id="m-niva">GRONN</dd></div>
+        <div class="motorrad"><dt>Språkmodell</dt><dd id="m-modell">lokal + sky</dd></div>
+        <div class="motorrad"><dt>Effektbudsjett</dt><dd id="m-effekt">ubegrenset</dd></div>
+        <div class="motorrad"><dt>Driftstid igjen</dt><dd id="m-timer">—</dd></div>
+        <div class="motorrad" id="m-rad-nedtrapping" hidden>
+          <dt>Nedtrapping</dt><dd class="nedtrapping" id="m-nedtrapping">—</dd>
+        </div>
+      </dl>
+
+    </aside>
+  </div>
+
+  <div class="noter">
+    <div class="note">
+      <h4>Nivået går fort opp, sakte ned</h4>
+      <p>
+        Forverring slår inn umiddelbart. Bedring må holde seg stabil gjennom hele
+        nedtrappingsvinduet, ellers vil et nett som blinker av og på sende panelet fram og
+        tilbake. Prøv å skru internett av og på raskt. <code>readiness.py</code>
+      </p>
+    </div>
+    <div class="note">
+      <h4>Ingen språkmodell i RØD</h4>
+      <p>
+        Under 25 % batteri forsvinner stemmen og modellen helt. Da får familien
+        forhåndsskrevet, kontrollert tekst — ikke generert tekst. Både strømsparing og
+        sikkerhet. <code>packs/prosedyrer/</code>
+      </p>
+    </div>
+    <div class="note">
+      <h4>Alderen står alltid framme</h4>
+      <p>
+        Gamle data brukes, men merkes. Er de eldre enn grensen, sier Aina «vet ikke» framfor
+        å gjette. Bytt alder på værdata og se hva som skjer med kortet. <code>cache.py</code>
+      </p>
+    </div>
+    <div class="note">
+      <h4>Demoen er komprimert</h4>
+      <p>
+        Nettbortfall utløser GUL etter 4 sekunder her, 60 sekunder i drift. Nedtrappingen er
+        8 sekunder her, 5 minutter i drift. Ellers er logikken den samme.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* Beredskapsmotoren, portert fra aina/services/aina-core/aina/readiness.py.
+   Terskler er komprimert for demoen — se noten nederst på siden. */
+
+const NIVAA = { GRONN: 0, GUL: 1, ORANSJE: 2, ROD: 3 };
+const NAVN  = ["GRONN", "GUL", "ORANSJE", "ROD"];
+
+const POLICY = {
+  GRONN:   { etikett: "Alt normalt",     farge: "var(--gronn)",   modell: "lokal + sky", effekt: "ubegrenset", lys: 1.0 },
+  GUL:     { etikett: "Uten internett",  farge: "var(--gul)",     modell: "lokal",       effekt: "ubegrenset", lys: 1.0 },
+  ORANSJE: { etikett: "Strømbrudd",      farge: "var(--oransje)", modell: "lokal, liten", effekt: "25 W",      lys: 0.35 },
+  ROD:     { etikett: "Kritisk batteri", farge: "var(--rod)",     modell: null,          effekt: "10 W",       lys: 0.0 },
+};
+
+const TERSKEL = {
+  batteriRod: 25,
+  internettGrenseMs: 4000,      // 60 s i drift
+  nedtrappingMs: 8000,          // 5 min i drift
+  kapasitetWh: 1150,
+};
+
+const motor = { nivaa: NIVAA.GRONN, internettNedeSiden: null, lavereKandidatSiden: null };
+
+const verden = { internett: true, nettstrom: true, batteri: 100, dataalder: "ferskt" };
+
+function raattNivaa(naa) {
+  if (!verden.nettstrom) {
+    if (verden.batteri <= TERSKEL.batteriRod) {
+      return [NIVAA.ROD, `Batteri ${verden.batteri} % — under kritisk terskel`, false];
+    }
+    return [NIVAA.ORANSJE, `Nettstrøm borte, batteri ${verden.batteri} %`, false];
+  }
+  if (!verden.internett) {
+    if (motor.internettNedeSiden === null) motor.internettNedeSiden = naa;
+    const nede = naa - motor.internettNedeSiden;
+    if (nede >= TERSKEL.internettGrenseMs) {
+      return [NIVAA.GUL, `Uten internett i ${Math.round(nede / 1000)} s`, false];
+    }
+    return [NIVAA.GRONN, "Kortvarig nettbortfall — ignorert", false];
+  }
+  motor.internettNedeSiden = null;
+  return [NIVAA.GRONN, "Alt normalt", true];
+}
+
+function vurder() {
+  const naa = Date.now();
+  const [raatt, grunnRaa, stabil] = raattNivaa(naa);
+  let grunn = grunnRaa;
+  let igjen = null;
+
+  if (raatt >= motor.nivaa) {
+    motor.nivaa = raatt;
+    motor.lavereKandidatSiden = null;
+  } else {
+    // Et kortvarig tilbakefall hever ikke nivået, men nullstiller nedtrappingen.
+    if (!stabil) motor.lavereKandidatSiden = naa;
+    else if (motor.lavereKandidatSiden === null) motor.lavereKandidatSiden = naa;
+
+    const gaatt = naa - motor.lavereKandidatSiden;
+    if (gaatt >= TERSKEL.nedtrappingMs) {
+      motor.nivaa = raatt;
+      motor.lavereKandidatSiden = null;
+    } else {
+      igjen = (TERSKEL.nedtrappingMs - gaatt) / 1000;
+      grunn = `Bedring registrert, holder ${NAVN[motor.nivaa]}`;
+    }
+  }
+
+  return { nivaa: motor.nivaa, raatt, grunn, igjen };
+}
+
+function gjenstaendeTimer() {
+  if (verden.nettstrom) return null;
+  const budsjett = motor.nivaa === NIVAA.ROD ? 10 : 25;
+  return (TERSKEL.kapasitetWh * (verden.batteri / 100) / budsjett).toFixed(1);
+}
+
+/* ---------- tegning ---------- */
+
+const $ = (id) => document.getElementById(id);
+
+const ALDERSTEKST = {
+  ferskt:    { tekst: "Oppdatert 12 min siden",                        tomt: false },
+  gammelt:   { tekst: "Hentet 18:40 i går — 14 t gammelt",             tomt: false },
+  ubrukelig: { tekst: "Ingen oppdatering på 9 døgn — ikke brukbart",   tomt: true  },
+};
+
+function tegn() {
+  const v = vurder();
+  const navn = NAVN[v.nivaa];
+  const p = POLICY[navn];
+  const beredskap = v.nivaa >= NIVAA.ORANSJE;
+
+  const skjerm = $("skjerm");
+  skjerm.dataset.niva = navn;
+  skjerm.dataset.dimmet = String(p.lys < 0.5);
+  skjerm.style.setProperty("--niva", p.farge);
+  $("etikett").textContent = p.etikett;
+
+  $("kropp").dataset.modus = beredskap ? "beredskap" : "normal";
+  $("normal").hidden = beredskap;
+  $("sidespalte").hidden = beredskap;
+  $("beredskap").hidden = !beredskap;
+
+  if (beredskap) {
+    const timer = gjenstaendeTimer();
+    $("beredskapstittel").textContent =
+      p.etikett + (timer ? ` — ca. ${timer} t igjen på batteri` : "");
+    $("beredskapsgrunn").textContent = v.grunn;
+    // I RØD er Meshtastic-sending fortsatt mulig, men stemmelaget er av.
+    $("handling3").hidden = false;
+  }
+
+  // Værkortet: alder vises alltid, og ved «for gammelt» erstattes tallet av et ærlig svar.
+  const a = ALDERSTEKST[verden.dataalder];
+  $("vaerkort").hidden = a.tomt;
+  $("vaertomt").hidden = !a.tomt;
+  const vaeralder = $("vaeralder");
+  vaeralder.textContent = a.tekst;
+  vaeralder.dataset.tilstand = verden.dataalder;
+
+  // Uten nett fryser strømprisene også — det skal synes.
+  const stromalder = $("stromalder");
+  if (verden.internett) {
+    stromalder.textContent = "Oppdatert 2 t siden";
+    stromalder.dataset.tilstand = "ferskt";
+  } else {
+    stromalder.textContent = "Hentet før nettet gikk — 6 t gammelt";
+    stromalder.dataset.tilstand = "gammelt";
+  }
+
+  $("mikrofon").textContent = p.modell === null
+    ? "Stemme av for å spare strøm — bruk berøring"
+    : "🎤 Si «Hei Aina»";
+
+  $("nettstatus").textContent = verden.internett ? "" : "Uten nett";
+
+  // motorutlesning
+  $("m-raatt").textContent = NAVN[v.raatt];
+  $("m-niva").textContent = navn;
+  $("m-modell").textContent = p.modell ?? "ingen";
+  $("m-effekt").textContent = p.effekt;
+  const t = gjenstaendeTimer();
+  $("m-timer").textContent = t ? `${t} t` : "—";
+  $("m-rad-nedtrapping").hidden = v.igjen === null;
+  if (v.igjen !== null) $("m-nedtrapping").textContent = `${v.igjen.toFixed(1)} s igjen`;
+}
+
+/* ---------- kontroller ---------- */
+
+$("internett").addEventListener("change", (e) => {
+  verden.internett = e.target.checked;
+  const br = $("br-internett");
+  br.dataset.av = String(!verden.internett);
+  br.querySelector(".lampe").textContent = verden.internett ? "TILKOBLET" : "NEDE";
+  tegn();
+});
+
+$("nettstrom").addEventListener("change", (e) => {
+  verden.nettstrom = e.target.checked;
+  const br = $("br-strom");
+  br.dataset.av = String(!verden.nettstrom);
+  br.querySelector(".lampe").textContent = verden.nettstrom ? "PÅ" : "BORTE";
+  $("batteri").disabled = verden.nettstrom;
+  tegn();
+});
+
+$("batteri").addEventListener("input", (e) => {
+  verden.batteri = Number(e.target.value);
+  $("batteriverdi").textContent = `${verden.batteri} %`;
+  tegn();
+});
+
+$("datavalg").addEventListener("click", (e) => {
+  const knapp = e.target.closest("button");
+  if (!knapp) return;
+  verden.dataalder = knapp.dataset.data;
+  for (const b of $("datavalg").querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b === knapp));
+  }
+  tegn();
+});
+
+$("dato").textContent = new Date().toLocaleDateString("nb-NO", {
+  weekday: "long", day: "numeric", month: "long",
+});
+
+setInterval(tegn, 250);
+tegn();
+</script>
+
+</body>
+</html>

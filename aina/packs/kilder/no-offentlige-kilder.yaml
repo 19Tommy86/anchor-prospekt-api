@@ -1,0 +1,118 @@
+# =============================================================================
+# Katalog over offentlige norske datakilder
+# =============================================================================
+# Maskinlesbar utgave av docs/03-api-nokler.md. Innhentingsjobbene leser denne.
+# Alt her er offentlig og ugradert.
+#
+# Feltet `nokkel` sier hva som kreves:
+#   ingen        — fri bruk
+#   user-agent   — ingen nøkkel, men krever identifiserende header
+#   gratis       — registrering, ingen kostnad
+#   betalt       — kommersiell avtale
+# =============================================================================
+
+kilder:
+  - id: met-locationforecast
+    navn: "MET Norway — værvarsel"
+    url: "https://api.met.no/weatherapi/locationforecast/2.0/compact"
+    nokkel: user-agent
+    kategori: vaer
+    intervall: 1h
+    kritisk: true
+    offline: "9-døgnsvarsel lagres ved hver henting"
+
+  - id: met-alerts
+    navn: "MET Alerts — farevarsel (CAP)"
+    url: "https://api.met.no/weatherapi/metalerts/2.0/current.json"
+    nokkel: user-agent
+    kategori: varsel
+    intervall: 10m
+    kritisk: true
+    offline: "Siste varselsett beholdes og merkes med alder"
+
+  - id: nve-varsom
+    navn: "NVE Varsom — flom, jord- og snøskred"
+    url: "https://api01.nve.no/hydrology/forecast/landslide/v1.0.6/api/"
+    nokkel: ingen
+    kategori: varsel
+    intervall: 1h
+    kritisk: true
+
+  - id: strompris
+    navn: "Hva koster strømmen — timepris NO1-NO5"
+    url: "https://www.hvakosterstrommen.no/api/v1/prices/"
+    nokkel: ingen
+    kategori: strom
+    intervall: 6h
+    offline: "Morgendagens priser hentes tidlig ettermiddag og lagres"
+
+  - id: tibber
+    navn: "Tibber — pris og forbruk"
+    url: "https://api.tibber.com/v1-beta/gql"
+    nokkel: gratis
+    kategori: strom
+    intervall: 1h
+    merknad: "Personlig token. Tibber Pulse leverer sanntid lokalt over LAN."
+
+  - id: kriseinfo
+    navn: "Kriseinfo.no (DSB)"
+    url: "https://www.kriseinfo.no/"
+    nokkel: ingen
+    kategori: kriseinfo
+    intervall: 15m
+    kritisk: true
+
+  - id: nrk-rss
+    navn: "NRK — nyheter"
+    url: "https://www.nrk.no/toppsaker.rss"
+    nokkel: ingen
+    kategori: kriseinfo
+    intervall: 15m
+
+  - id: vegvesen-datex
+    navn: "Statens vegvesen — trafikkmeldinger (Datex II)"
+    url: "https://datex.atlas.vegvesen.no/"
+    nokkel: ingen
+    kategori: transport
+    intervall: 15m
+    offline: "Kritisk for evakueringsrute — speiles"
+
+  - id: entur
+    navn: "Entur — kollektivtrafikk hele Norge"
+    url: "https://api.entur.io/journey-planner/v3/graphql"
+    nokkel: user-agent
+    kategori: transport
+    intervall: 1h
+    merknad: "Krever ET-Client-Name-header. GTFS kan lastes ned for offline bruk."
+
+  - id: geonorge-tilfluktsrom
+    navn: "Offentlige tilfluktsrom (DSB via Geonorge)"
+    url: "https://kartkatalog.geonorge.no/"
+    nokkel: ingen
+    kategori: beredskap
+    intervall: 30d
+    kritisk: true
+    offline: "Lastes ned én gang og ligger lokalt permanent"
+
+  - id: kartverket-adresse
+    navn: "Kartverket — adresser og stedsnavn"
+    url: "https://ws.geonorge.no/adresser/v1/"
+    nokkel: ingen
+    kategori: geo
+    intervall: 30d
+
+  - id: osm-overpass
+    navn: "OpenStreetMap Overpass — apotek, helse, vann, forsyning"
+    url: "https://overpass-api.de/api/interpreter"
+    nokkel: ingen
+    kategori: geo
+    intervall: 30d
+    merknad: "Bruk uttrekk med radius, ikke sanntidskall. Vær snill mot tjenesten."
+
+  - id: pmtiles
+    navn: "Offline kartfliser (Protomaps/PMTiles fra OSM)"
+    url: "https://maps.protomaps.com/builds/"
+    nokkel: ingen
+    kategori: geo
+    intervall: 90d
+    offline: "Én fil på disk — hele kartet fungerer uten nett"

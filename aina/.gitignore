@@ -1,0 +1,38 @@
+# Hemmeligheter og husstandsdata — skal ALDRI i git
+.env
+.env.*
+!.env.example
+packs/husstand.yaml
+packs/*.local.yaml
+secrets/
+*.key
+*.pem
+!ca.example.pem
+
+# Lokale data
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.pmtiles
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Node / panel
+node_modules/
+apps/panel/dist/
+
+# Verktøy
+.DS_Store
+.idea/
+.vscode/
